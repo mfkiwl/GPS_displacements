@@ -86,4 +86,4 @@ for i in range(0, numSta, 1):
 print(counter, 'many stations have been found within the radius')
 print('no more stations within 300 km of event')
 numSites.close()
-# include something for if rinex exits = use station, if rinex does not exist, discard
+# include something for if rinex exisyt = use station, if rinex does not exist, discard
