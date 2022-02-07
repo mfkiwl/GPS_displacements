@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import datetime
 import calendar
 import math
@@ -14,38 +14,7 @@ c = 299792458.0 # speed of light
 fL1 = 1575.42e6 # L1 frequency
 fL2 = 1227.60e6 # L2 frequency
 
-# converts from month string to month in int
-def month_converter(month):
-    months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-    return months.index(month) + 1
-
-# converts calendar date to doy
-def doy_calc(year,month,day):
-    isleap = calendar.isleap(year)
-    if str(isleap) == 'True':
-        dom = [31,29,31,30,31,30,31,31,30,31,30,31]
-    else:
-        dom = [31,28,31,30,31,30,31,31,30,31,30,31]
-    doy = int(numpy.sum(dom[:(month-1)])+day)
-    return(doy)
-
-# converts from year and day to gps week and gps day of week
-def gpsweekdow(year,doy):
-    date = datetime.datetime(year, 1, 1) + datetime.timedelta(doy - 1)
-    gpstime = (numpy.datetime64(date) - numpy.datetime64('1980-01-06T00:00:00'))/ numpy.timedelta64(1, 's')
-    gpsweek = int(gpstime/604800)
-    gpsdow = math.floor((gpstime-gpsweek*604800)/86400)
-    return(gpsweek, gpsdow)
-
-# converts all of this to gps time
-def gpstimeconvert(gpstime):
-    gpsweek = int(gpstime/604800)
-    gpsdow = math.floor((gpstime-gpsweek*604800)/86400)
-    gpssow = gpstime-gpsweek*604800
-    return(gpsweek, gpsdow, gpssow)
-
-
-
+# Functions
 #This takes displacements in x, y, z and converts them to north, east up
 def dxyz2dneu(dx,dy,dz,lat,lon):
     lat = lat*math.pi/180
@@ -209,3 +178,39 @@ def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
     sacu.write('output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXZ.sac')
 
     # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
+
+
+
+# first thing we need to do is take the input file (output file from GipsyX)
+#    example: ac12_210_full.txt
+#    J time                 POS              X                 Y                Z           dx        dy        dz
+#    680810400.0000000    GPSPOS       -3450877.1679    -1284085.3131     5190636.3242    0.0168    0.0110    0.0187
+#    680810401.0000000    GPSPOS       -3450877.1603    -1284085.3096     5190636.3184    0.0168    0.0110    0.0187
+#    680810402.0000000    GPSPOS       -3450877.1644    -1284085.3076     5190636.3203    0.0168    0.0110    0.0187
+#    680810403.0000000    GPSPOS       -3450877.1638    -1284085.3092     5190636.3101    0.0168    0.0110    0.0167
+#    680810404.0000000    GPSPOS       -3450877.1626    -1284085.3073     5190636.3038    0.0168    0.0110    0.0167
+#    680810405.0000000    GPSPOS       -3450877.1645    -1284085.3062     5190636.3124    0.0168    0.0110    0.0167
+#    680810406.0000000    GPSPOS       -3450877.1626    -1284085.3052     5190636.3147    0.0168    0.0110    0.0167
+#    680810407.0000000    GPSPOS       -3450877.1665    -1284085.3057     5190636.3219    0.0168    0.0110    0.0167
+#    680810408.0000000    GPSPOS       -3450877.1638    -1284085.3046     5190636.3278    0.0176    0.0112    0.0168
+#    680810409.0000000    GPSPOS       -3450877.1620    -1284085.3030     5190636.3305    0.0176    0.0112    0.0168
+
+filename = "/Users/jensen/PycharmProjects/numSites/ac12_210_full.txt"
+
+data = np.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
+
+time = data[:,0]
+x = data[:,1]
+y = data[:,2]
+z = data[:,3]
+dx = data[:,4]
+dy = data[:,5]
+dz = data[:,6]
+
+# convert from x,y,z to n,e,u
+[n, e, u] = dxyz2dneu(x,y,z,lat,lon)
+[dn, de, du] = dxyz2dneu(dx,dy,dz,lat,lon)
+
+
+
+# we want to convert X Y Z to E,N,U
