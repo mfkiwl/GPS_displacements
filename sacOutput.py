@@ -1,4 +1,4 @@
-import numpy as np
+import numpy
 import datetime
 import calendar
 import math
@@ -9,12 +9,14 @@ from scipy.signal import filtfilt
 from scipy.signal import butter
 from obspy.io.sac import SACTrace
 ###########################################################################
-#constants
+
+
+# Constants ###############################################################
 c = 299792458.0 # speed of light
 fL1 = 1575.42e6 # L1 frequency
 fL2 = 1227.60e6 # L2 frequency
 
-# Functions
+# Functions ###############################################################
 #This takes displacements in x, y, z and converts them to north, east up
 def dxyz2dneu(dx,dy,dz,lat,lon):
     lat = lat*math.pi/180
@@ -23,6 +25,13 @@ def dxyz2dneu(dx,dy,dz,lat,lon):
     de = -numpy.sin(lon)*dx+numpy.cos(lon)*dy
     du = numpy.cos(lat)*numpy.cos(lon)*dx+numpy.cos(lat)*numpy.sin(lon)*dy+numpy.sin(lat)*dz
     return (dn, de, du)
+
+def gpsleapsec(gpssec):
+    leaptimes = numpy.array([46828800, 78364801, 109900802, 173059203, 252028804, 315187205, 346723206, 393984007, 425520008, 457056009, 504489610, 551750411, 599184012, 820108813, 914803214, 1025136015, 1119744016, 1167264017])
+    leapseconds = numpy.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])
+    a1 = numpy.where(gpssec > leaptimes)[0]
+    leapsec = len(a1)
+    return(leapsec)
 
 #Time Series to CSV writer
 def ts2csv(site,tdir,csvdir,startyear):
@@ -108,14 +117,12 @@ def ts2csv(site,tdir,csvdir,startyear):
                 fno.write(avgtime[0]+' 12:00:00'+','+nstr+','+nestr+','+estr+','+eestr+','+ustr+','+uestr+'\n')
     fno.close()
     return
-
-
 #ts2csv('sc04','/gnssarchive/daily','sscsv',2021)
 
-def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
-    a = numpy.loadtxt(velfile)
-    tind = a[:, 0]
-    gtime = a[:, 1]
+def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
+    a = numpy.loadtxt(dispfile)
+    #tind = a[:, 0]
+    gtime = a[:, 0]
     leapsec = gpsleapsec(gtime[0]) + 630763200
 
     # Get the start time of the file in UTC
@@ -132,9 +139,9 @@ def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
     stsec = sitem.second
 
     # subtracts the average
-    nunf = a[:, 2] - numpy.nanmean(a[:, 2])
-    eunf = a[:, 3] - numpy.nanmean(a[:, 3])
-    uunf = a[:, 4] - numpy.nanmean(a[:, 4])
+    nunf = a[:, 1] - numpy.nanmean(a[:, 1]) #n unfiltered
+    eunf = a[:, 2] - numpy.nanmean(a[:, 2])
+    uunf = a[:, 3] - numpy.nanmean(a[:, 3])
     t = gtime - gtime[0] # subtracts the first epoch
     print(samprate) # check sample rate
     samplerate = float(samprate) # convert to float
@@ -144,7 +151,7 @@ def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
     nv = filtfilt(bf, af, nunf) # applies the filter forward and backward to the signal
     ev = filtfilt(bf, af, eunf)
     uv = filtfilt(bf, af, uunf)
-    plotvelocities(event, site, t, nv * 100, ev * 100, uv * 100)
+    #plotvelocities(event, site, t, nv * 100, ev * 100, uv * 100)
     sr = "{0:.2f}".format(float(samprate))
 
     #output LXN
@@ -179,8 +186,7 @@ def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
 
     # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
 
-
-
+# Actual Code ###############################################################
 # first thing we need to do is take the input file (output file from GipsyX)
 #    example: ac12_210_full.txt
 #    J time                 POS              X                 Y                Z           dx        dy        dz
@@ -195,9 +201,20 @@ def writesac(velfile, site, stalat, stalon, doy, year, samprate, event):
 #    680810408.0000000    GPSPOS       -3450877.1638    -1284085.3046     5190636.3278    0.0176    0.0112    0.0168
 #    680810409.0000000    GPSPOS       -3450877.1620    -1284085.3030     5190636.3305    0.0176    0.0112    0.0168
 
-filename = "/Users/jensen/PycharmProjects/numSites/ac12_210_full.txt"
+# this will become a loop at some point, to loop through a file with all this information?
+# write now let's do it manually
+site = 'ac12'
+doy = '210'
+year ='2021'
+siteLat = 54.83097 # station latitude --- could even pull these from numSites with the little script written earlier
+siteLon = -159.58954 # station longitude
+samprate = 0.2 # not really sure what to put this as?
+eqName = 'Alaska75'
 
-data = np.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
+# eventually this will be a directory to my ess.geodesy home, but testing in local python env
+filename = '/Users/jensen/PycharmProjects/GPS_displacements/' + site + '_' + doy + '_full.txt'
+
+data = numpy.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
 
 time = data[:,0]
 x = data[:,1]
@@ -207,10 +224,17 @@ dx = data[:,4]
 dy = data[:,5]
 dz = data[:,6]
 
-# convert from x,y,z to n,e,u
-[n, e, u] = dxyz2dneu(x,y,z,lat,lon)
-[dn, de, du] = dxyz2dneu(dx,dy,dz,lat,lon)
+# convert from x,y,z to n,e,u, use lat and lon of station?
+[n, e, u] = dxyz2dneu(x,y,z,siteLat,siteLon)
+[dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat,siteLon)
 
+# then create dispfile - a file with the time (JTime, dn, de, and du)
+output = open('displacements_' + site + '_' + doy + '.txt','w')
+# write this to an actual file
+dispData = numpy.column_stack((time,dn,de,du))
+numpy.savetxt(output, dispData)
+output.close()
 
-
-# we want to convert X Y Z to E,N,U
+# run writeSAC
+# writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
+writesac('displacements_ac12_210.txt', site, siteLat, siteLon, doy, 2021, samprate, eqName)
