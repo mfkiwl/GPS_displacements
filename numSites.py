@@ -10,8 +10,11 @@ import numpy as np
 import datetime
 import calendar
 import math
+import os
+import wget
 # import functions from SNIVEL_tools
 from SNIVEL_tools import *
+from SNIVEL_filedownloader import getrinexhr
 
 #Create a variable for the file name containing all the stations
 filename = "stations.txt"
@@ -33,14 +36,37 @@ for line in lines:
 
 infile.close()  #Always close the file!
 
+# THIS IS WHERE YOU NEED TO CHANGE THINGS PER EVENT ################################################################
+# GET THIS FROM THE SPREADSHEET OF EVENTS
+# earthquake event- eventually make the user enter this or have it as part of an input file?
+print ("Enter the event name")
+event= input()
+print("enter the latitude")
+eqLat = input()
+eqLat = float(eqLat)
+print("enter the longitude")
+eqLon = input()
+eqLon = float(eqLon)
+print("enter the altitude (use negative for depth")
+alt = input()
+alt = float(alt)
+print("enter the year of the event")
+year = input()
+#year = str(year)
+print("enter the doy")
+doy = input()
+#doy = str(doy)
 
-# earthquake event- eventually make the user enter this
-# sand point, Alaska
-eqLat = 54.602
-eqLon = -159.626
-alt = -28.4
 
-# lla2ecef(lat,lon,alt):
+
+# event = 'Anchorage'
+# eqLat = 61.346
+# eqLon = -149.955
+# alt = -46.7
+# year = str(2018)
+# doy = str(334)
+
+# lla2ecef(lat,lon,alt): lat,lon,alt => ecef  (earth centered earth fixed)
 [eqX, eqY, eqZ] = lla2ecef(eqLat,eqLon,alt) #outputs in meters!!!
 eqX = eqX/1000
 eqY = eqY/1000
@@ -58,12 +84,12 @@ staAlt = np.transpose(staAlt)
 
 
 # fun output file for the loop
-numSites = open('sites.txt','w')
+outputSites = open('/Users/jensen/PycharmProjects/GPS_displacements/sites_' + event + '.txt','w')
 
 # a loooooop
 counter = 0
 numSta = len(staLat)
-for i in range(0, numSta, 1):
+for i in range(0, numSta):
     # lla2ecef(lat,lon,alt):
     [staX, staY, staZ] = lla2ecef(staLat, staLon, alt)
 
@@ -78,12 +104,18 @@ for i in range(0, numSta, 1):
     # distance from eq to station
     dist = np.sqrt(dx**2 + dy**2 + dz**2)
 
-    if (dist <= 300): # 100 km - this will change dependent on magnitude of eq
+    if (dist <= 100): # 100 km - this will change dependent on magnitude of eq
         #print(staName[i])
-        numSites.write(staName[i]+ '\n')
+        staName[i] = staName[i].lower()
+        outputSites.write(staName[i]+ '\n')
         counter+=1
+
+        site = staName[i]
+        # run getrinexhr to check stations existence and wget the data
+        getrinexhr(site, year, doy)
 
 print(counter, 'many stations have been found within the radius')
 print('no more stations within 300 km of event')
-numSites.close()
-# include something for if rinex exisyt = use station, if rinex does not exist, discard
+outputSites.close()
+
+# include something for if rinex exists = use station, if rinex does not exist, discard
