@@ -38,7 +38,7 @@ infile.close()  #Always close the file!
 
 # THIS IS WHERE YOU NEED TO CHANGE THINGS PER EVENT ################################################################
 # GET THIS FROM THE SPREADSHEET OF EVENTS
-# earthquake event- eventually make the user enter this or have it as part of an input file?
+# earthquake event- eventually make part of an input file?
 print ("Enter the event name")
 event= input()
 print("enter the latitude")
@@ -56,6 +56,10 @@ year = input()
 print("enter the doy")
 doy = input()
 #doy = str(doy)
+print("what search radius would you like to use?")
+print("For M5.5, 100 km is good, 1000km is maximum limit")
+radius= input()
+radius = int(radius)
 
 
 
@@ -83,10 +87,19 @@ staLon = np.transpose(staLon)
 staAlt = np.transpose(staAlt)
 
 
-# fun output file for the loop
-outputSites = open('/Users/jensen/PycharmProjects/GPS_displacements/sites_' + event + '.txt','w')
+# set up the output file space
+outDir = '/home/jdegran/jd_gipsy_working/' + event + '/'
+if not os.path.exists(outDir):  # if nav folder doesn't exist, make it
+    os.makedirs(outDir)
+sitefile = outDir + 'sites_' + event + '.txt'
+outputSites = open(sitefile, 'w')
 
-# a loooooop
+# outDir = '/home/jdegran/jd_gipsy_working/' + event + '/'
+# sitefile = outDir + 'sites_' + event + '.txt'
+# outputSites = open(sitefile, 'w')
+#outputSites = open('/Users/jensen/PycharmProjects/GPS_displacements/sites_' + event + '.txt','w')
+
+# a loooooop to figure out what stations are within distance
 counter = 0
 numSta = len(staLat)
 for i in range(0, numSta):
@@ -104,7 +117,7 @@ for i in range(0, numSta):
     # distance from eq to station
     dist = np.sqrt(dx**2 + dy**2 + dz**2)
 
-    if (dist <= 100): # 100 km - this will change dependent on magnitude of eq
+    if (dist <= radius): # 100 km - this will change dependent on magnitude of eq
         #print(staName[i])
         staName[i] = staName[i].lower()
         outputSites.write(staName[i]+ '\n')
@@ -112,7 +125,7 @@ for i in range(0, numSta):
 
         site = staName[i]
         # run getrinexhr to check stations existence and wget the data
-        getrinexhr(site, year, doy)
+        getrinexhr(site, year, doy) # this pulls from the rinex database - we can set up others for other events?
 
 print(counter, 'many stations have been found within the radius')
 print('no more stations within 300 km of event')
