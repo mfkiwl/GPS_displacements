@@ -12,12 +12,15 @@ import calendar
 import math
 import os
 import wget
+import sys
+sys.path.insert(1, '/home/jdegran/jd_gipsy_working')
 # import functions from SNIVEL_tools
 from SNIVEL_tools import *
 from SNIVEL_filedownloader import getrinexhr
 
 #Create a variable for the file name containing all the stations
-filename = "stations.txt"
+dataPath = '/home/jdegran/jd_gipsy_working/'
+filename = dataPath + "stations.txt"
 
 staName = list()
 staLat = np.array([])
@@ -58,8 +61,8 @@ doy = input()
 #doy = str(doy)
 print("what search radius would you like to use?")
 print("For M5.5, 100 km is good, 1000km is maximum limit")
-radius= input()
-radius = int(radius)
+radius_str = input()
+radius = int(radius_str)
 
 
 
@@ -120,15 +123,15 @@ for i in range(0, numSta):
     if (dist <= radius): # 100 km - this will change dependent on magnitude of eq
         #print(staName[i])
         staName[i] = staName[i].lower()
-        outputSites.write(staName[i]+ '\n')
+        outputSites.write(staName[i]+ staX[i] + staY[i] + staZ[i] + '\n')
         counter+=1
 
         site = staName[i]
         # run getrinexhr to check stations existence and wget the data
         getrinexhr(site, year, doy) # this pulls from the rinex database - we can set up others for other events?
 
-print(counter, 'many stations have been found within the radius')
-print('no more stations within 300 km of event')
+print(counter, ' stations have been found within the radius')
+print('no more stations within' + radius_str + ' km of event')
 outputSites.close()
 
 # include something for if rinex exists = use station, if rinex does not exist, discard

@@ -8,15 +8,19 @@ import scipy
 from scipy.signal import filtfilt
 from scipy.signal import butter
 from obspy.io.sac import SACTrace
+from SNIVEL_tools import ecef2lla
+from GPS_tools import covrot
 ###########################################################################
-
+# for sac file structure for velocities processed with SNIVEL see, geodesy.ess.washington.edu/SNIVEL/output
+# this script is taken an edited from SNIVEL_tools.py written by Brendan Crowell
 
 # Constants ###############################################################
+
 c = 299792458.0 # speed of light
 fL1 = 1575.42e6 # L1 frequency
 fL2 = 1227.60e6 # L2 frequency
 
-# Functions ###############################################################
+# Functions ##########################################################################################################
 #This takes displacements in x, y, z and converts them to north, east up
 def dxyz2dneu(dx,dy,dz,lat,lon):
     lat = lat*math.pi/180
@@ -161,8 +165,10 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
     sacn = SACTrace(data=nv, **headN)
     sacn.write('output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
-    sacn = SACTrace(data=nunf, **headN)
+    #sacn.write(event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
+    #sacn = SACTrace(data=nunf, **headN)
     sacn.write('output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXN.sac')
+    sacn.write(event + '.' + site.upper() + '.' + sr + '.LXN.sac')
 
     #output LXE
     print('Writing SAC file ' + 'output/' + event + '.' + site + '.' + sr + '.LXE.sac')
@@ -186,7 +192,7 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
 
     # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
 
-# Actual Code ###############################################################
+# Actual Script #####################################################################################################
 # first thing we need to do is take the input file (output file from GipsyX)
 #    example: ac12_210_full.txt
 #    J time                 POS              X                 Y                Z           dx        dy        dz
@@ -229,12 +235,24 @@ dz = data[:,6]
 [dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat,siteLon)
 
 # then create dispfile - a file with the time (JTime, dn, de, and du)
-output = open('displacements_' + site + '_' + doy + '.txt','w')
-# write this to an actual file
-dispData = numpy.column_stack((time,dn,de,du))
-numpy.savetxt(output, dispData)
+dispData = numpy.column_stack((time,dn,de,du)) # write this to an actual file
+
+outFile = 'displacements_' + site + '_' + doy + '.txt' #outdirdata + '/' + SID + '_' + str(eqtime) + '.txt'
+print("Printing file " + outFile)
+output = open(outFile,'w+')
+
+length = len(dispData)
+for j in range(0, length):
+        timer = time
+        north = dn
+        east = de
+        up = du
+        output.write(str(j) + ' ' + str(timer[j]) + ' ' + str(north[j]) + ' ' + str(east[j]) + ' ' + str(up[j]) + '\n')
+
 output.close()
 
 # run writeSAC
+# example call to function
 # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
-writesac('displacements_ac12_210.txt', site, siteLat, siteLon, doy, 2021, samprate, eqName)
+
+writesac(outFile, site, siteLat, siteLon, doy, year, samprate, eqName)
