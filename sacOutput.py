@@ -3,11 +3,13 @@ import datetime
 import calendar
 import math
 import os
+import sys
 import obspy
 import scipy
 from scipy.signal import filtfilt
 from scipy.signal import butter
 from obspy.io.sac import SACTrace
+sys.path.insert(1, '/home/jdegran/jd_gipsy_working')
 from SNIVEL_tools import ecef2lla
 from GPS_tools import covrot
 ###########################################################################
@@ -164,11 +166,17 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
     sacn = SACTrace(data=nv, **headN)
-    sacn.write('output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
+    if not os.path.exists(mainDir + 'output/sacfilt/' + event):
+        os.makedirs(mainDir + 'output/sacfilt/' + event)
+    sacn.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
     #sacn.write(event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
-    #sacn = SACTrace(data=nunf, **headN)
-    sacn.write('output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXN.sac')
-    sacn.write(event + '.' + site.upper() + '.' + sr + '.LXN.sac')
+
+    sacn = SACTrace(data=nunf, **headN)
+    if not os.path.exists(mainDir + 'output/sac/' + event):
+        os.makedirs(mainDir + 'output/sac/' + event)
+    sacn.write(mainDir + 'output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXN.sac')
+    #sacn.write(event + '.' + site.upper() + '.' + sr + '.LXN.sac')
+    #### command on the above line works and creates the correct file in the cwd -- need to figure out how to write to NOT current directory
 
     #output LXE
     print('Writing SAC file ' + 'output/' + event + '.' + site + '.' + sr + '.LXE.sac')
@@ -176,9 +184,9 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
     sace = SACTrace(data=ev, **headE)
-    sace.write('output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXE.sac')
+    sace.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXE.sac')
     sace = SACTrace(data=eunf, **headE)
-    sace.write('output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXE.sac')
+    sace.write(mainDir + 'output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXE.sac')
 
     #output LXZ
     print('Writing SAC file ' + 'output/' + event + '.' + site + '.' + sr + '.LXZ.sac')
@@ -186,9 +194,9 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
     sacu = SACTrace(data=uv, **headZ)
-    sacu.write('output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXZ.sac')
+    sacu.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXZ.sac')
     sacu = SACTrace(data=uunf, **headZ)
-    sacu.write('output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXZ.sac')
+    sacu.write(mainDir + 'output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXZ.sac')
 
     # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
 
@@ -207,52 +215,105 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
 #    680810408.0000000    GPSPOS       -3450877.1638    -1284085.3046     5190636.3278    0.0176    0.0112    0.0168
 #    680810409.0000000    GPSPOS       -3450877.1620    -1284085.3030     5190636.3305    0.0176    0.0112    0.0168
 
+######################################################################################################################
+# get user entered inputs
+print('running sacOutput...')
+print ("Enter the event name")
+event = input()
+print("enter the year of the event (yyyy)")
+year = input()
+print("enter the doy (ddd)")
+doy = input()
+
+# hard-coded variables
+samprate = 0.2
+
+# set the datapaths
+mainDir = '/home/jdegran/jd_gipsy_working/'
+eventDir = mainDir + event + '/'
+
+#Create a variable for the file name containing all the stations that were downloaded and processed through GipsyX
+filename = eventDir + 'downloadedSites_' + event + '_latlon.txt'
+
+site = list()
+siteLat = numpy.array([])
+siteLon = numpy.array([])
+#staAlt = np.array([])
+
+#Open the file, read into each vector
+infile = open(filename, 'r')
+lines = infile.readlines()
+for line in lines:
+    sline = line.split(',')
+    site.append(sline[0])
+    siteLat = numpy.append(siteLat, float(sline[1]))
+    siteLon = numpy.append(siteLon, float(sline[2]))
+    #staAlt = numpy.append(staAlt, float(sline[3]))
+
+infile.close()  #Always close the file!
+
+
+
+
+
+
+
 # this will become a loop at some point, to loop through a file with all this information?
 # write now let's do it manually
-site = 'ac12'
-doy = '210'
-year ='2021'
-siteLat = 54.83097 # station latitude --- could even pull these from numSites with the little script written earlier
-siteLon = -159.58954 # station longitude
-samprate = 0.2 # not really sure what to put this as?
-eqName = 'Alaska75'
+# site = 'ac12'
+# doy = '210'
+# year ='2021'
+# siteLat = 54.83097 # station latitude --- could even pull these from numSites with the little script written earlier
+# siteLon = -159.58954 # station longitude
+
+
 
 # eventually this will be a directory to my ess.geodesy home, but testing in local python env
-filename = '/Users/jensen/PycharmProjects/GPS_displacements/' + site + '_' + doy + '_full.txt'
+#filename = '/Users/jensen/PycharmProjects/GPS_displacements/' + site + '_' + doy + '_full.txt'
+#filename = '/Users/jensendegrande/PycharmProjects/GPS_displacements/' + site + '_' + doy + '_full.txt'
+#filename = '/home/jdegran/jd_gipsy_working/Alaska75/' + site + '_' + doy + '_full.txt'
 
-data = numpy.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
 
-time = data[:,0]
-x = data[:,1]
-y = data[:,2]
-z = data[:,3]
-dx = data[:,4]
-dy = data[:,5]
-dz = data[:,6]
+# okay now we can make it a looooooop
+numSites = len(site)
+for i in range(0, numSites):
+    filename = eventDir + site[i] + '_' + doy + '_full.txt' # this is the output file from gipsyX
+    # load said file
+    data = numpy.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
 
-# convert from x,y,z to n,e,u, use lat and lon of station?
-[n, e, u] = dxyz2dneu(x,y,z,siteLat,siteLon)
-[dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat,siteLon)
+    time = data[:,0]
+    x = data[:,1]
+    y = data[:,2]
+    z = data[:,3]
+    dx = data[:,4]
+    dy = data[:,5]
+    dz = data[:,6]
 
-# then create dispfile - a file with the time (JTime, dn, de, and du)
-dispData = numpy.column_stack((time,dn,de,du)) # write this to an actual file
+    # convert from x,y,z to n,e,u, use lat and lon of station (? double check this with brendan)
+    [n, e, u] = dxyz2dneu(x,y,z,siteLat[i],siteLon[i])
+    [dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat[i],siteLon[i])
 
-outFile = 'displacements_' + site + '_' + doy + '.txt' #outdirdata + '/' + SID + '_' + str(eqtime) + '.txt'
-print("Printing file " + outFile)
-output = open(outFile,'w+')
+    # then create displacements file (like the velcoities files in SNIVEL) - a file with the time (JTime, dn, de, and du)
+    dispData = numpy.column_stack((time,dn,de,du)) # write this to an actual file
 
-length = len(dispData)
-for j in range(0, length):
-        timer = time
-        north = dn
-        east = de
-        up = du
-        output.write(str(j) + ' ' + str(timer[j]) + ' ' + str(north[j]) + ' ' + str(east[j]) + ' ' + str(up[j]) + '\n')
+    outFile = eventDir + 'displacements_' + site[i] + '_' + doy + '.txt' #outdirdata + '/' + SID + '_' + str(eqtime) + '.txt'
+    print("Printing file " + outFile)
+    output = open(outFile,'w+')
 
-output.close()
+    length = len(dispData)
+    # write the results of the conversion from x,y,z to e,n,u to the displacements file
+    for j in range(0, length):
+            timer = time
+            north = dn
+            east = de
+            up = du
+            output.write(str(j) + ' ' + str(timer[j]) + ' ' + str(north[j]) + ' ' + str(east[j]) + ' ' + str(up[j]) + '\n')
+
+    output.close() # cool now we can write to sac format
+
+    writesac(outFile, site[i], siteLat[i], siteLon[i], doy, year, samprate, event)
 
 # run writeSAC
 # example call to function
 # writesac('output/velocities_p156_354_2021.txt','p156','35','-120','354','2021',0.2,'ferndale')
 
-writesac(outFile, site, siteLat, siteLon, doy, year, samprate, eqName)
