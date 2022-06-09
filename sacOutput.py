@@ -276,42 +276,49 @@ infile.close()  #Always close the file!
 
 # okay now we can make it a looooooop
 numSites = len(site)
+counter = 0
 for i in range(0, numSites):
     filename = eventDir + site[i] + '_' + doy + '_full.txt' # this is the output file from gipsyX
     # load said file
-    data = numpy.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
+    if os.stat(filename).st_size != 0:
+        data = numpy.loadtxt(filename, dtype=float, usecols=(0,2,3,4,5,6,7))
 
-    time = data[:,0]
-    x = data[:,1]
-    y = data[:,2]
-    z = data[:,3]
-    dx = data[:,4]
-    dy = data[:,5]
-    dz = data[:,6]
+        time = data[:,0]
+        x = data[:,1]
+        y = data[:,2]
+        z = data[:,3]
+        dx = data[:,4]
+        dy = data[:,5]
+        dz = data[:,6]
 
-    # convert from x,y,z to n,e,u, use lat and lon of station (? double check this with brendan)
-    [n, e, u] = dxyz2dneu(x,y,z,siteLat[i],siteLon[i])
-    [dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat[i],siteLon[i])
+        # convert from x,y,z to n,e,u, use lat and lon of station (? double check this with brendan)
+        [n, e, u] = dxyz2dneu(x,y,z,siteLat[i],siteLon[i])
+        [dn, de, du] = dxyz2dneu(dx,dy,dz,siteLat[i],siteLon[i])
 
-    # then create displacements file (like the velcoities files in SNIVEL) - a file with the time (JTime, dn, de, and du)
-    dispData = numpy.column_stack((time,dn,de,du)) # write this to an actual file
+        # then create displacements file (like the velcoities files in SNIVEL) - a file with the time (JTime, dn, de, and du)
+        dispData = numpy.column_stack((time,dn,de,du)) # write this to an actual file
 
-    outFile = eventDir + 'displacements_' + site[i] + '_' + doy + '.txt' #outdirdata + '/' + SID + '_' + str(eqtime) + '.txt'
-    print("Printing file " + outFile)
-    output = open(outFile,'w+')
+        outFile = eventDir + 'displacements_' + site[i] + '_' + doy + '.txt' #outdirdata + '/' + SID + '_' + str(eqtime) + '.txt'
+        print("Printing file " + outFile)
+        output = open(outFile,'w+')
 
-    length = len(dispData)
-    # write the results of the conversion from x,y,z to e,n,u to the displacements file
-    for j in range(0, length):
-            timer = time
-            north = dn
-            east = de
-            up = du
-            output.write(str(j) + ' ' + str(timer[j]) + ' ' + str(north[j]) + ' ' + str(east[j]) + ' ' + str(up[j]) + '\n')
+        length = len(dispData)
+        # write the results of the conversion from x,y,z to e,n,u to the displacements file
+        for j in range(0, length):
+                timer = time
+                north = dn
+                east = de
+                up = du
+                output.write(str(j) + ' ' + str(timer[j]) + ' ' + str(north[j]) + ' ' + str(east[j]) + ' ' + str(up[j]) + '\n')
 
-    output.close() # cool now we can write to sac format
+        output.close() # cool now we can write to sac format
 
-    writesac(outFile, site[i], siteLat[i], siteLon[i], doy, year, samprate, event)
+        writesac(outFile, site[i], siteLat[i], siteLon[i], doy, year, samprate, event)
+    else:
+        print('file ' + filename + ' is empty.. moving on')
+        counter+=1
+
+print(str(counter) + ' event was not processed because file was empty')
 
 # run writeSAC
 # example call to function
