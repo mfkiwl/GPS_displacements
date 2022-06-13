@@ -134,7 +134,7 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
     # Get the start time of the file in UTC
     date = datetime.datetime(int(year), 1, 1) + datetime.timedelta(int(doy) - 1)
     gpstime = (numpy.datetime64(date) - numpy.datetime64('1980-01-06T00:00:00')) / numpy.timedelta64(1, 's')
-    stime = (gtime[0] - leapsec) * numpy.timedelta64(1, 's') + numpy.datetime64('2000-01-01T12:00:00')
+    stime = (gtime[0] - leapsec) * numpy.timedelta64(1, 's') + numpy.datetime64('2000-01-01T12:00:00') # changed from SNIVEL_tools
     sitem = stime.item()
     print(sitem)
     styr = sitem.year
@@ -151,12 +151,14 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
     t = gtime - gtime[0] # subtracts the first epoch
     print(samprate) # check sample rate
     samplerate = float(samprate) # convert to float
+
+    # FILTER
     # butterworth digital and analog filter design
     # numerator, denominator = butter(order of filter, critical frequencies, low pass)
-    bf, af = butter(4, 1.25 / 0.5 * samplerate, btype='low')
-    nv = filtfilt(bf, af, nunf) # applies the filter forward and backward to the signal
-    ev = filtfilt(bf, af, eunf)
-    uv = filtfilt(bf, af, uunf)
+    #bf, af = butter(4, 1.25 / 0.5 * samplerate, btype='low')
+    #nv = filtfilt(bf, af, nunf) # applies the filter forward and backward to the signal
+    #ev = filtfilt(bf, af, eunf)
+    #uv = filtfilt(bf, af, uunf)
     #plotvelocities(event, site, t, nv * 100, ev * 100, uv * 100)
     sr = "{0:.2f}".format(float(samprate))
 
@@ -165,12 +167,14 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
     headN = {'kstnm': site, 'kcmpnm': 'LXN', 'stla': float(stalat), 'stlo': float(stalon),
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
-    sacn = SACTrace(data=nv, **headN)
-    if not os.path.exists(mainDir + 'output/sacfilt/' + event):
-        os.makedirs(mainDir + 'output/sacfilt/' + event)
-    sacn.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
+    # FILTERED
+    #sacn = SACTrace(data=nv, **headN)
+    #if not os.path.exists(mainDir + 'output/sacfilt/' + event):
+    #    os.makedirs(mainDir + 'output/sacfilt/' + event)
+    #sacn.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
     #sacn.write(event + '.' + site.upper() + '.' + sr + '.filt.LXN.sac')
 
+    # UNFILTERED
     sacn = SACTrace(data=nunf, **headN)
     if not os.path.exists(mainDir + 'output/sac/' + event):
         os.makedirs(mainDir + 'output/sac/' + event)
@@ -183,8 +187,10 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
     headE = {'kstnm': site, 'kcmpnm': 'LXE', 'stla': float(stalat), 'stlo': float(stalon),
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
-    sace = SACTrace(data=ev, **headE)
-    sace.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXE.sac')
+    # FILTERED
+    # sace = SACTrace(data=ev, **headE)
+    # sace.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXE.sac')
+    # UNFILTERED
     sace = SACTrace(data=eunf, **headE)
     sace.write(mainDir + 'output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXE.sac')
 
@@ -193,8 +199,10 @@ def writesac(dispfile, site, stalat, stalon, doy, year, samprate, event):
     headZ = {'kstnm': site, 'kcmpnm': 'LXZ', 'stla': float(stalat), 'stlo': float(stalon),
              'nzyear': int(year), 'nzjday': int(doy), 'nzhour': int(sthr), 'nzmin': int(stmin),
              'nzsec': int(stsec), 'nzmsec': int(0), 'delta': float(samprate)}
-    sacu = SACTrace(data=uv, **headZ)
-    sacu.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXZ.sac')
+    # FILTERED
+    # sacu = SACTrace(data=uv, **headZ)
+    # sacu.write(mainDir + 'output/sacfilt/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.filt.LXZ.sac')
+    # UNFILTERED
     sacu = SACTrace(data=uunf, **headZ)
     sacu.write(mainDir + 'output/sac/' + event + '/' + event + '.' + site.upper() + '.' + sr + '.LXZ.sac')
 

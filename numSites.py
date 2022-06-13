@@ -128,10 +128,11 @@ for i in range(0, numSta):
 
         site = staName[i]
         # run getrinexhr to check stations existence and wget the data
-        getrinexhr(site, year, doy) # this pulls from the rinex database - we can set up others for other events?
+        getrinexhr(site, year, doy,event) # this pulls from the rinex database - we can set up others for other events?
 
 print(counter, ' stations have been found within the radius')
 print('no more stations within' + radius_str + ' km of event')
 outputSites.close()
 
 # include something for if rinex exists = use station, if rinex does not exist, discard
+# need to search other rinex databases internationally to see if that data is elsewhere
